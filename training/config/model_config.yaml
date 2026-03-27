@@ -1,0 +1,160 @@
+# ============================================================
+# Model Configuration
+# Defines hyperparameter search spaces for each algorithm.
+# All ranges are inclusive [low, high] for Optuna suggest_*.
+# ============================================================
+
+# -----------------------------------------------
+# INTERPRETABLE (LINEAR) MODELS
+# -----------------------------------------------
+
+lasso:
+  type: "linear"
+  estimator: "Lasso"
+  params:
+    alpha:
+      suggest: "float"
+      low: 1.0e-4
+      high: 10.0
+      log: true
+    max_iter:
+      suggest: "int"
+      low: 1000
+      high: 5000
+
+ridge:
+  type: "linear"
+  estimator: "Ridge"
+  params:
+    alpha:
+      suggest: "float"
+      low: 1.0e-3
+      high: 100.0
+      log: true
+
+elastic_net:
+  type: "linear"
+  estimator: "ElasticNet"
+  params:
+    alpha:
+      suggest: "float"
+      low: 1.0e-4
+      high: 10.0
+      log: true
+    l1_ratio:
+      suggest: "float"
+      low: 0.01
+      high: 1.0
+      log: false
+    max_iter:
+      suggest: "int"
+      low: 1000
+      high: 5000
+
+linear_regression:
+  type: "linear"
+  estimator: "LinearRegression"
+  params: {}   # no hyperparameters to tune
+
+# -----------------------------------------------
+# NON-LINEAR MODELS
+# -----------------------------------------------
+
+random_forest:
+  type: "nonlinear"
+  estimator: "RandomForestRegressor"
+  params:
+    n_estimators:
+      suggest: "int"
+      low: 50
+      high: 300
+    max_depth:
+      suggest: "int"
+      low: 3
+      high: 15
+    min_samples_split:
+      suggest: "int"
+      low: 2
+      high: 20
+    min_samples_leaf:
+      suggest: "int"
+      low: 1
+      high: 10
+    max_features:
+      suggest: "categorical"
+      choices: ["sqrt", "log2", null]
+
+gradient_boosting:
+  type: "nonlinear"
+  estimator: "GradientBoostingRegressor"
+  params:
+    n_estimators:
+      suggest: "int"
+      low: 50
+      high: 300
+    learning_rate:
+      suggest: "float"
+      low: 0.005
+      high: 0.3
+      log: true
+    max_depth:
+      suggest: "int"
+      low: 2
+      high: 8
+    subsample:
+      suggest: "float"
+      low: 0.5
+      high: 1.0
+      log: false
+    min_samples_leaf:
+      suggest: "int"
+      low: 1
+      high: 20
+
+svr:
+  type: "nonlinear"
+  estimator: "SVR"
+  params:
+    C:
+      suggest: "float"
+      low: 0.1
+      high: 100.0
+      log: true
+    epsilon:
+      suggest: "float"
+      low: 0.01
+      high: 10.0
+      log: true
+    kernel:
+      suggest: "categorical"
+      choices: ["rbf", "poly"]
+    gamma:
+      suggest: "categorical"
+      choices: ["scale", "auto"]
+
+# -----------------------------------------------
+# Feature selection hyperparameters
+# (shared across all models inside the pipeline)
+# -----------------------------------------------
+feature_selection:
+  univariate_k:
+    suggest: "int"
+    low: 3
+    high: 10
+  rfe_n_features:
+    suggest: "int"
+    low: 2
+    high: 6
+
+# -----------------------------------------------
+# Which models to train in this run
+# (comment out to skip)
+# -----------------------------------------------
+active_models:
+  - "lasso"
+  - "ridge"
+  - "elastic_net"
+  - "linear_regression"
+  - "random_forest"
+  - "gradient_boosting"
+  - "svr"

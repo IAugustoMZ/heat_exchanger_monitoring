@@ -1,0 +1,99 @@
+# ============================================================
+# Features Configuration
+# Defines which columns to use, engineered features,
+# lag windows, and column transformer groups.
+# ============================================================
+
+# ---------------------
+# Raw observable inputs
+# (available from DCS/SCADA in production)
+# ---------------------
+observable_features:
+  - "T_h_in_K"        # Gas inlet temperature [K]
+  - "T_h_out_K"       # Gas outlet temperature [K]  — proxy for heavy comp loading
+  - "T_c_in_K"        # LNG inlet temperature [K]
+  - "T_c_out_K"       # LNG outlet temperature [K]  — strongest proxy per EDA
+  - "delta_P_Pa"      # Tube-side pressure drop [Pa]
+
+# ---------------------
+# Derived / ideal-model error signals
+# (computable from observable inputs via first-principles)
+# ---------------------
+error_features:
+  - "U_error"           # U_actual − U_ideal  (KPI degradation signal)
+  - "T_h_out_error"     # T_h_out_actual − T_h_out_ideal
+  - "T_c_out_error"     # T_c_out_actual − T_c_out_ideal
+
+# ---------------------
+# Ideal-model outputs
+# (needed for absolute reconstruction: dP_pred = dP_ideal + dP_error_ml)
+# ---------------------
+ideal_features:
+  - "dP_ideal"
+  - "U_ideal"
+  - "T_h_out_ideal"
+  - "T_c_out_ideal"
+
+# ---------------------
+# Temporal / engineered features
+# ---------------------
+temporal_features:
+  - "t_h"             # Elapsed time in hours
+
+# ---------------------
+# Feature engineering settings
+# ---------------------
+lag_features:
+  columns:
+    - "dP_error"       # dominant — ACF lag-1 > 0.999
+    - "delta_P_Pa"
+    - "U_error"
+  n_lags: 3            # create t-1, t-2, t-3 lags
+
+rate_of_change:
+  columns:
+    - "dP_error"       # dΔP/dt captures acceleration as D_h shrinks
+    - "delta_P_Pa"
+  window: 5            # rolling mean window (samples) before differentiating
+
+# ---------------------
+# ColumnTransformer groups
+# (StandardScaler applies to all, kept separate for interpretability logging)
+# ---------------------
+column_groups:
+  process_temps:
+    - "T_h_in_K"
+    - "T_h_out_K"
+    - "T_c_in_K"
+    - "T_c_out_K"
+  pressure:
+    - "delta_P_Pa"
+  error_signals:
+    - "U_error"
+    - "T_h_out_error"
+    - "T_c_out_error"
+  temporal:
+    - "t_h"
+
+# ---------------------
+# Feature selector settings
+# ---------------------
+feature_selection:
+  univariate_k_range: [3, 8]     # SelectKBest search space
+  rfe_n_range: [2, 5]            # RFE n_features_to_select search space
+
+# ---------------------
+# Columns to drop before modelling
+# (labels / ground-truth unavailable in production)
+# ---------------------
+drop_columns:
+  - "U_mean_W_m2K"
+  - "delta_f_mean_m"
+  - "delta_f_max_m"
+  - "freezing_alarm"
+  - "early_stop"
+  - "dP_meas_unc"
+  - "dP_ideal_unc"
+  - "dP_error_unc"
+  - "Q_ideal"
+  - "eps_ideal"

@@ -1,0 +1,48 @@
+# ============================================================
+# Experiment Configuration
+# Controls MLflow tracking, alarm thresholds, data paths,
+# and cross-validation strategy.
+# ============================================================
+
+mlflow:
+  tracking_uri: "http://localhost:5000"   # Docker MLflow server
+  experiment_name: "hx_frost_dP_error_forecast"
+  run_tags:
+    project: "heat_exchanger_monitoring"
+    methodology: "hybrid_first_principles_ml"
+    target_kpi: "dP_error"
+
+data:
+  enriched_dataset_path: "eda/enriched_dataset.csv"
+  target_column: "dP_error"
+  group_column: "group"         # e.g. "gradual_freezing_run1"
+  scenario_column: "scenario"
+  time_column: "t_h"            # hours elapsed
+  alarm_threshold_pa: 943.3     # 150% of normal-op baseline (from EDA)
+  dP_ideal_column: "dP_ideal"
+
+cross_validation:
+  strategy: "temporal_group_split"   # train on runs 1+2, test on run 3
+  train_runs: [1, 2]
+  test_runs: [3]
+  n_splits: 5                        # inner TimeSeriesSplit for Optuna
+  gap: 0                             # no gap between folds
+
+target_transform:
+  method: "yeo_johnson"
+  lambda_: 0.61                      # fitted in EDA — overridden if refit=true
+  refit: false                       # set true to re-estimate lambda from training set
+
+random_seed: 42
+
+optuna:
+  n_trials: 80          # per model type
+  direction: "maximize"  # maximise neg_MAE (closest to 0) → lowest MAE
+  pruner: "MedianPruner"
+  sampler: "TPESampler"
+  timeout_seconds: 300   # 5-minute budget per model
+  log_all_trials: true   # log each Optuna trial as a child MLflow run
+
+runtime_forecast:
+  horizon_multiplier: 5.0   # forecast up to 5× current elapsed time
+  min_points_for_forecast: 10

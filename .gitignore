@@ -1,0 +1,39 @@
+# Virtual environment
+hx_frost/
+
+# Data (generated)
+data/
+
+# MLflow local storage
+mlflow.db
+mlartifacts/
+
+# Agent instructions
+CLAUDE.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log

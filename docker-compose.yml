@@ -1,0 +1,73 @@
+services:
+  # ─────────────────────────────────────────────
+  # MLflow Tracking & Model Serving
+  # ─────────────────────────────────────────────
+  mlflow:
+    build:
+      context: .
+      dockerfile: mlflow/Dockerfile
+    container_name: hx-mlflow
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+    volumes:
+      - ./mlflow.db:/app/mlflow.db
+      - ./mlartifacts:/app/mlartifacts
+    environment:
+      - MLFLOW_TRACKING_URI=sqlite:///app/mlflow.db
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/app/mlartifacts
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────
+  # FastAPI Backend
+  # ─────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: hx-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/simulated:/app/data/simulated:ro
+      - ./eda:/app/eda:ro
+      - ./mlartifacts:/app/mlartifacts:ro
+      - ./training/config:/app/training/config:ro
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MLFLOW_MODEL_SERVE_URI=http://mlflow:5001
+      - DATA_DIR=/app/data/simulated
+      - EDA_DIR=/app/eda
+      - ARTIFACTS_DIR=/app/mlartifacts
+      - CONFIG_DIR=/app/training/config
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────────
+  # Vite React Frontend (production build + nginx)
+  # ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hx-frontend
+    ports:
+      - "3002:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
